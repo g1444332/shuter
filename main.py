@@ -1,19 +1,19 @@
 from pygame import *
 from random import randint
+import time as tm
 
 WIDTH, HEIGHT = 700, 500
 
 x1, y1 = 200, 300
 x2, y2 = 400, 300
-p_speed, m_speed = 10, 10
+p_speed, m_speed = 5, 10
 FPS = 60
 
-scope_lose = 0
-scope_kill = 0
+scope_lose, scope_kill = 0, 0
 
 window = display.set_mode((WIDTH, HEIGHT))
 display.set_caption('da')
-background = transform.scale(image.load('images/galaxy.jpg'), (WIDTH, HEIGHT))
+background = transform.scale(image.load('images/galaxy.png'), (WIDTH, HEIGHT))
 
 clock = time.Clock()
 
@@ -37,6 +37,7 @@ class GameSprite(sprite.Sprite):
 
 
 class Player(GameSprite):
+
     def update(self):
         keys = key.get_pressed()
         if keys[K_a] and self.rect.x > 5:
@@ -47,32 +48,59 @@ class Player(GameSprite):
             self.rect.y += self.speed
         if keys[K_w] and self.rect.y > 5:
             self.rect.y -= self.speed
+        if keys[K_SPACE]:
+            pass
+            # bullets.add(Bullet("images/bullet.png", self.rect.x, self.rect.y, 10, ))
+
+    def set_image(self, player_image):
+        self.image = transform.scale(image.load(player_image), self.image.get_size())
+
+class Bullet(GameSprite):
+    def update(self):
+        self.rect.y -= self.speed
+
+        if self.rect.y >= -50:
+            pass
+
+
+class Asteroid(GameSprite):
+    def update(self):
+        self.rect.y += self.speed
+
+        if self.rect.y >= 500:
+            self.rect.y = randint(-400, -80)
 
 
 class Enemy(GameSprite):
     def update(self):
         self.rect.y += self.speed
 
-        if self.rect.y >= 700:
+        if self.rect.y >= 500:
             global scope_lose
             scope_lose += 1
             self.rect.y = randint(-400, -80)
 
 
+bullets = sprite.Group()
+# asteroids = sprite.Group()
+
+asteroids = []
+for i in range(3):
+    asteroids.append(Asteroid('images/asteroid.png', randint(50, 650), randint(-400, -80), randint(1, 2), 50, 50))
 
 enemys = []
 for i in range(6):
-    enemys.append(Enemy('images/ufo.png', randint(50, 650), randint(-400, -80), randint(2, 3), 60, 60))
+    enemys.append(Enemy('images/ufo.png', randint(50, 650), randint(-400, -80), randint(2, 3), 70, 30))
 
 rocket = Player('images/rocket.png', 5, HEIGHT - 100, p_speed, 80, 80)
-# ufo = Enemy('ufo.png', randint(100, 600), HEIGHT - 100, 2)
 
 font.init()
-font = font.Font(None, 70)
-win = font.render('YOU WIN!', True, (255, 215, 0))
-lose = font.render('YOU LOSE!', True, (180, 0, 0))
 
+font1 = font.Font(None, 70)
+font2 = font.Font(None, 30)
 
+win = font1.render('YOU WIN!', True, (255, 215, 0))
+lose = font1.render('YOU LOSE!', True, (180, 0, 0))
 
 game = True
 finish = False
@@ -81,22 +109,46 @@ while game:
         if e.type == QUIT:
             game = False
 
-    window.blit(background, (0, 0))
-    for i in enemys:
-        i.update()
-        i.reset()
-    rocket.update()
-    rocket.reset()
-    text_scope_lose = font.render(f'scope lose: {scope_lose}', True, (255, 215, 0))
-    text_scope_kill = font.render(f'scope kill: {scope_kill}', True, (180, 0, 0))
+    if not finish:
+        window.blit(background, (0, 0))
 
-    window.blit(text_scope_lose, (0, 0))
-    window.blit(text_scope_kill, (0, 70))
+        for i in asteroids:
+            i.update()
+            i.reset()
 
-    # if sprite.collide_rect(player, monster) or sprite.collide_rect(player, w1) or sprite.collide_rect(player, w2) or sprite.collide_rect(player, w3) or sprite.collide_rect(player, w4) or sprite.collide_rect(player, w5) or sprite.collide_rect(player, w6) or sprite.collide_rect(player, w7) or sprite.collide_rect(player, w8) or sprite.collide_rect(player, w9) or sprite.collide_rect(player, w10) or sprite.collide_rect(player, w11):
-    #     finish = True
-    #     window.blit(lose, (200, 200))
-    #     kick.play()
+        for i in enemys:
+            i.update()
+            i.reset()
+
+        rocket.update()
+        rocket.reset()
+
+        text_scope_lose = font2.render(f'scope lose: {scope_lose}', True, (255, 215, 0))
+        text_scope_kill = font2.render(f'scope kill: {scope_kill}', True, (180, 0, 0))
+
+        window.blit(text_scope_lose, (0, 0))
+        window.blit(text_scope_kill, (0, 20))
+
+    if sprite.spritecollide(rocket, enemys, False):
+        rocket.set_image("images/boom3.png")
+        rocket.reset()
+
+        finish = True
+        window.blit(lose, (200, 200))
+
+    if sprite.groupcollide(enemys, bullets, False, False):
+        scope_kill += 1
+
+    if scope_lose >= 3:
+        rocket.set_image("images/boom3.png")
+        rocket.reset()
+
+        finish = True
+        window.blit(lose, (200, 200))
+
+    if scope_kill >= 10:
+        finish = True
+        window.blit(win, (200, 200))
 
     display.update()
     clock.tick(FPS)

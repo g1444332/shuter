@@ -1,6 +1,6 @@
 from pygame import *
 from random import randint
-import time as tm
+import math
 
 WIDTH, HEIGHT = 700, 500
 
@@ -31,6 +31,7 @@ class GameSprite(sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = player_x
         self.rect.y = player_y
+        self.angle = 90
 
     def reset(self):
         window.blit(self.image, (self.rect.x, self.rect.y))
@@ -49,15 +50,34 @@ class Player(GameSprite):
         if keys[K_w] and self.rect.y > 5:
             self.rect.y -= self.speed
         if keys[K_SPACE]:
-            pass
-            # bullets.add(Bullet("images/bullet.png", self.rect.x, self.rect.y, 10, ))
+            bullets.add(Bullet("images/bullet.png", self.rect.x + 35, self.rect.y, 10, 5, 15))
+        if keys[K_e]:
+            bullet1 = Bullet("images/bullet.png", self.rect.x + 17, self.rect.y, 10, 5, 15)
+            bullet2 = Bullet("images/bullet.png", self.rect.x + 35, self.rect.y, 10, 5, 15)
+            bullet3 = Bullet("images/bullet.png", self.rect.x + 45, self.rect.y, 10, 5, 15)
+
+            bullet1.image = transform.rotate(bullet1.image, 30)
+            bullet3.image = transform.rotate(bullet3.image, -30)
+
+            bullet1.angle = 100
+            bullet3.angle = 80
+
+            bullets.add(bullet1)
+            bullets.add(bullet2)
+            bullets.add(bullet3)
 
     def set_image(self, player_image):
         self.image = transform.scale(image.load(player_image), self.image.get_size())
 
+
 class Bullet(GameSprite):
     def update(self):
-        self.rect.y -= self.speed
+        radians = math.radians(self.angle)
+        dx = self.speed * math.cos(radians)
+        dy = self.speed * math.sin(radians)
+
+        self.rect.x += dx
+        self.rect.y -= dy
 
         if self.rect.y >= -50:
             pass
@@ -88,9 +108,9 @@ asteroids = []
 for i in range(3):
     asteroids.append(Asteroid('images/asteroid.png', randint(50, 650), randint(-400, -80), randint(1, 2), 50, 50))
 
-enemys = []
+enemys = sprite.Group()
 for i in range(6):
-    enemys.append(Enemy('images/ufo.png', randint(50, 650), randint(-400, -80), randint(2, 3), 70, 30))
+    enemys.add(Enemy('images/ufo.png', randint(50, 650), randint(-400, -80), randint(1, 2), 50, 50))
 
 rocket = Player('images/rocket.png', 5, HEIGHT - 100, p_speed, 80, 80)
 
@@ -120,6 +140,10 @@ while game:
             i.update()
             i.reset()
 
+        for i in bullets:
+            i.update()
+            i.reset()
+
         rocket.update()
         rocket.reset()
 
@@ -129,18 +153,21 @@ while game:
         window.blit(text_scope_lose, (0, 0))
         window.blit(text_scope_kill, (0, 20))
 
+    collides = sprite.groupcollide(enemys, bullets, True, True)
+    for c in collides:
+        scope_kill += 1
+        monster = Enemy('images/ufo.png', randint(50, 650), randint(-400, -80), randint(2, 3), 50, 50)
+        enemys.add(monster)
+
     if sprite.spritecollide(rocket, enemys, False):
-        rocket.set_image("images/boom3.png")
+        rocket.set_image("images/boom.png")
         rocket.reset()
 
         finish = True
         window.blit(lose, (200, 200))
 
-    if sprite.groupcollide(enemys, bullets, False, False):
-        scope_kill += 1
-
     if scope_lose >= 3:
-        rocket.set_image("images/boom3.png")
+        rocket.set_image("images/boom.png")
         rocket.reset()
 
         finish = True
